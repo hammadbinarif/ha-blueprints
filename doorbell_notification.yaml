@@ -1,0 +1,29 @@
+blueprint:
+  name: Doorbell Gemini Notification
+  description: |
+    Sends a notification with the Gemini-generated description and image.
+    Can be reused in other automations.
+  domain: automation
+  input:
+    notify_service:
+      name: Notification Service
+      description: The `notify.` service to send the message to.
+      default: notify.phones_adults
+    notification_title:
+      name: Notification Title
+      description: Title of the notification
+      default: "Doorbell Camera Event"
+
+trigger: []
+
+mode: single
+
+condition: []
+
+action:
+  - service: !input notify_service
+    data:
+      title: !input notification_title
+      message: "{{ description }}"
+      data:
+        image: "{{ image_path | replace('/config/www', '/local') }}"

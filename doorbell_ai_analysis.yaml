@@ -1,0 +1,141 @@
+blueprint:
+  name: Doorbell Snapshot & Gemini Description
+  description: >
+    Capture a snapshot from a camera when triggered, analyze it using Gemini, store the response,
+    and optionally trigger a follow-up notification automation.
+  domain: automation
+  input:
+    person_detection_entity:
+      name: Person Detection Binary Sensor
+      description: Triggered when a person is detected.
+      default: binary_sensor.reolink_video_doorbell_wifi_person
+      selector:
+        entity:
+          domain: binary_sensor
+
+    doorbell_pressed_entity:
+      name: Doorbell Press Binary Sensor
+      description: Triggered when the doorbell is pressed.
+      default: binary_sensor.reolink_video_doorbell_wifi_visitor
+      selector:
+        entity:
+          domain: binary_sensor
+
+    camera_entity:
+      name: Camera Entity
+      description: Camera to take snapshot from.
+      default: camera.reolink_video_doorbell_wifi_fluent
+      selector:
+        entity:
+          domain: camera
+
+    update_json_shell_command:
+      name: Shell Command - Update JSON
+      description: Shell command to update doorbell event file.
+      default: shell_command.update_doorbell_events_json
+      selector:
+        entity:
+          domain: shell_command
+
+    create_dir_shell_command:
+      name: Shell Command - Create Snapshot Directory
+      description: Shell command to create directory for snapshots.
+      default: shell_command.create_camera_snapshots_dir
+      selector:
+        entity:
+          domain: shell_command
+
+    snapshot_folder:
+      name: Snapshot Folder (Absolute Path)
+      description: Where to save the snapshot, e.g. /config/www/camera_snapshots
+      default: /config/www/camera_snapshots
+      selector:
+        text:
+
+    include_notification:
+      name: Trigger Notification Automation?
+      description: If enabled, the specified automation will be triggered.
+      default: true
+      selector:
+        boolean:
+
+    notification_automation:
+      name: Notification Automation (optional)
+      description: The automation that handles sending the notification.
+      default: automation.send_reolink_gemini_notification
+      selector:
+        entity:
+          domain: automation
+
+    prompt_text:
+      name: AI Prompt
+      description: Prompt to send to Gemini for image analysis.
+      default: >
+        Analyze this image from my doorbell camera. Describe who is there or
+        what is happening in one or two sentences. Try identifying the gender
+        and age if there are people in the photo. You can be silly and playful
+        with your descriptions. If it looks like a delivery, you can say that.
+        Limit response to 150 characters.
+      selector:
+        text:
+
+variables:
+  folder_variable: !input snapshot_folder
+  include_notification_variable: !input include_notification
+  filename_time: "{{ now().strftime('%Y%m%d_%H%M%S') }}"
+  snapshot_filename: "{{ folder_variable }}/reolink_{{ trigger.id }}_{{ filename_time }}.jpg"
+
+trigger:
+  - platform: state
+    entity_id: !input person_detection_entity
+    to: "on"
+    id: person_detected
+
+  - platform: state
+    entity_id: !input doorbell_pressed_entity
+    to: "on"
+    id: doorbell_pressed
+
+mode: queued
+
+action:
+  - service: !input create_dir_shell_command
+
+  - service: camera.snapshot
+    data:
+      entity_id: !input camera_entity
+      filename: "{{ snapshot_filename }}" # This will now correctly resolve from trigger_variables
+
+  - delay:
+      seconds: 1
+
+  - service: google_generative_ai_conversation.generate_content
+    data:
+      prompt: !input prompt_text
+      filenames: "{{ snapshot_filename }}" # Use the variable resolved from trigger_variables
+    response_variable: gemini_response
+
+  - variables:
+      # This 'variables' block is within the 'action' and can access 'gemini_response' and 'snapshot_filename'
+      img_path_for_card: "{{ snapshot_filename | replace('/config/www', '/local') }}"
+      description_clean: "{{ gemini_response.text | replace('\n', ' ') | replace('\r', ' ') }}"
+      timestamp_iso: "{{ now().isoformat() }}"
+
+  - service: !input update_json_shell_command
+    data:
+      img_path_for_card: "{{ img_path_for_card }}"
+      description_clean: "{{ description_clean }}"
+      timestamp_iso: "{{ timestamp_iso }}"
+
+  - choose:
+      - conditions:
+          - condition: template
+            value_template: "{{ include_notification_variable }}"
+        sequence:
+          - service: automation.trigger
+            data:
+              variables:
+                description: "{{ gemini_response.text }}"
+                image_path: "{{ snapshot_filename }}" # Use the variable resolved from trigger_variables
+            target:
+              entity_id: !input notification_automation

@@ -2,7 +2,7 @@ blueprint:
   name: Doorbell Snapshot & Gemini Description
   description: >
     Capture a snapshot from a camera when triggered, analyze it using Gemini, store the response,
-    and optionally trigger a follow-up notification automation.
+    and optionally call a notification script.
   domain: automation
   input:
     person_detection_entity:
@@ -37,6 +37,16 @@ blueprint:
         entity:
           domain: shell_command
 
+    max_items_to_store:
+      name: Max Doorbell Events to Store
+      description: Maximum number of doorbell events to keep in the JSON file. Older events will be removed.
+      default: 100
+      selector:
+        number:
+          min: 1
+          max: 1000
+          mode: box
+
     create_dir_shell_command:
       name: Shell Command - Create Snapshot Directory
       description: Shell command to create directory for snapshots.
@@ -53,19 +63,19 @@ blueprint:
         text:
 
     include_notification:
-      name: Trigger Notification Automation?
-      description: If enabled, the specified automation will be triggered.
+      name: Call Notification Script?
+      description: If enabled, the specified script will be called.
       default: true
       selector:
         boolean:
 
-    notification_automation:
-      name: Notification Automation (optional)
-      description: The automation that handles sending the notification.
-      default: automation.send_reolink_gemini_notification
+    notification_script:
+      name: Notification Script (optional)
+      description: The script that handles sending the notification.
+      default: script.doorbell_gemini_notification
       selector:
         entity:
-          domain: automation
+          domain: script
 
     prompt_text:
       name: AI Prompt
@@ -84,6 +94,7 @@ variables:
   include_notification_variable: !input include_notification
   filename_time: "{{ now().strftime('%Y%m%d_%H%M%S') }}"
   snapshot_filename: "{{ folder_variable }}/reolink_{{ trigger.id }}_{{ filename_time }}.jpg"
+  max_items_to_store: !input max_items_to_store
 
 trigger:
   - platform: state
@@ -104,7 +115,7 @@ action:
   - service: camera.snapshot
     data:
       entity_id: !input camera_entity
-      filename: "{{ snapshot_filename }}" # This will now correctly resolve from trigger_variables
+      filename: "{{ snapshot_filename }}"
 
   - delay:
       seconds: 1
@@ -112,11 +123,10 @@ action:
   - service: google_generative_ai_conversation.generate_content
     data:
       prompt: !input prompt_text
-      filenames: "{{ snapshot_filename }}" # Use the variable resolved from trigger_variables
+      filenames: "{{ snapshot_filename }}"
     response_variable: gemini_response
 
   - variables:
-      # This 'variables' block is within the 'action' and can access 'gemini_response' and 'snapshot_filename'
       img_path_for_card: "{{ snapshot_filename | replace('/config/www', '/local') }}"
       description_clean: "{{ gemini_response.text | replace('\n', ' ') | replace('\r', ' ') }}"
       timestamp_iso: "{{ now().isoformat() }}"
@@ -126,16 +136,15 @@ action:
       img_path_for_card: "{{ img_path_for_card }}"
       description_clean: "{{ description_clean }}"
       timestamp_iso: "{{ timestamp_iso }}"
+      max_items_to_store: "{{ max_items_to_store }}"
 
   - choose:
       - conditions:
           - condition: template
             value_template: "{{ include_notification_variable }}"
         sequence:
-          - service: automation.trigger
+          - service: !input notification_script
             data:
               variables:
                 description: "{{ gemini_response.text }}"
-                image_path: "{{ snapshot_filename }}" # Use the variable resolved from trigger_variables
-            target:
-              entity_id: !input notification_automation
+                image_path: "{{ snapshot_filename }}"

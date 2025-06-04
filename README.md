@@ -2,6 +2,8 @@
 
 This repository provides Home Assistant automation blueprints and complementary shell scripts, designed to enhance your doorbell camera setup. It integrates AI analysis (via Google Gemini) for doorbell snapshots and includes automated cleanup of old camera files. 
 
+![Demo](/demo/doorbell_notfications_demo.gif)
+
 ---
 
 ## ✨ Features

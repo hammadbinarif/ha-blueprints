@@ -50,9 +50,8 @@ Before you begin, ensure you have the following set up in your Home Assistant:
 ## 📦 Installation
 
 This repository contains:
-* Two **Blueprints** (for doorbell snapshot/AI analysis and notifications).
+* Three **Blueprints** (for doorbell snapshot/AI analysis and notifications and for old photos cleanup).
 * **Shell Scripts** (for updating the JSON and managing directories).
-* A **Pre-built Automation** (for cleaning old snapshots).
 
 ### 🛠️ Step 1: Manual Setup for Shell Scripts and Directories (REQUIRED!)
 

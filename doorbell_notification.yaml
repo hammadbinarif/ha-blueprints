@@ -6,12 +6,12 @@ blueprint:
   domain: script
   author: Hammad Arif
   input:
-    notify_service:
-      name: Notification Service
-      description: The `notify.` service to send the message to (e.g., `notify.mobile_app_your_phone`, `notify.phones_group`).
-      default: notify.notify
+    target_device:
+      name: Mobile App Device
+      description: Select the mobile app device to send notifications to (e.g., your phone).
       selector:
-        text:
+        device:
+          integration: mobile_app 
 
     notification_title:
       name: Notification Title
@@ -24,9 +24,11 @@ variables:
   image_url: "{{ image_path | replace('/config/www', '/local') }}"
 
 sequence:
-  - service: !input notify_service
+  - service: mobile_app.notify 
     data:
       title: !input notification_title
-      message: "{{ description }}"
+      message: "{{ description }}" 
       data:
         image: "{{ image_url }}"
+    target: 
+      device_id: !input target_device

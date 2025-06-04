@@ -146,6 +146,5 @@ action:
         sequence:
           - service: !input notification_script
             data:
-              variables:
-                description: "{{ gemini_response.text }}"
-                image_path: "{{ snapshot_filename }}"
+              description: "{{ gemini_response.text }}"
+              image_path: "{{ snapshot_filename }}"

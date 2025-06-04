@@ -106,6 +106,12 @@ Sends a notification using image + AI-generated description.
 Automatically captures a snapshot, analyzes it with Gemini AI, and stores results and optionally sends a notification.
 
 [![Open your Home Assistant instance and show the blueprint import dialog with a specific blueprint pre-filled.](https://my.home-assistant.io/badges/blueprint_import.svg)](https://my.home-assistant.io/redirect/blueprint_import/?blueprint_url=https%3A%2F%2Fgithub.com%2Fhammadbinarif%2Fha-blueprints%2Fblob%2Fmain%2Fdoorbell_ai_analysis.yaml)
+
+### 📸 Clean Old Camera Snapshots
+This automation runs daily to clean older images. This ensures your snapshot directory doesn't grow indefinitely.
+
+[![Open your Home Assistant instance and show the blueprint import dialog with a specific blueprint pre-filled.](https://my.home-assistant.io/badges/blueprint_import.svg)](https://my.home-assistant.io/redirect/blueprint_import/?blueprint_url=https%3A%2F%2Fgithub.com%2Fhammadbinarif%2Fha-blueprints%2Fblob%2Fmain%2Fclean_old_camera_snapshots.yaml)
+
 ---
 
 ## 🚀 Usage
@@ -146,24 +152,9 @@ This blueprint creates an automation that captures, analyzes, and logs doorbell 
 
 This automation ensures your snapshot directory doesn't grow indefinitely.
 
-1.  Go to **Settings** > **Automations & Scenes** > **Automations**.
-2.  Create a new automation named "Clean Old Camera Snapshots". 
-3.  Use the following automation YAML script 
-
-```yaml
-alias: Clean Old Camera Snapshots
-description: Deletes camera snapshots older than the specified retention period.
-triggers:
-  - hours: "3"
-    trigger: time_pattern
-conditions: []
-actions:
-  - action: shell_command.clean_camera_snapshots
-    data: {}
-mode: single
-```
-
-4.  **Review and Enable:**
+1.  Go to **Settings** > **Automations & Scenes** > **Blueprints**.
+2.  Find the "Clean Old Camera Snapshots" blueprint and click **"Create Automation"**.
+3.  **Review and Enable:**
     * By default, it's configured to run daily at 3 AM.
     * It calls the `shell_command.clean_camera_snapshots` which deletes `.jpg` files older than 30 days from `/config/www/camera_snapshots/`.
     * You can modify the trigger time or the `find` command in `configuration.yaml` if you need different retention periods or paths.

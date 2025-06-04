@@ -4,6 +4,7 @@ blueprint:
     Capture a snapshot from a camera when triggered, analyze it using Gemini, store the response,
     and optionally call a notification script.
   domain: automation
+  author: Hammad Arif
   input:
     person_detection_entity:
       name: Person Detection Binary Sensor

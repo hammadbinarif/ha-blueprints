@@ -4,6 +4,7 @@ blueprint:
     Sends a rich notification with the Gemini-generated description and image.
     Designed to be called by other automations, passing 'description' and 'image_path' variables.
   domain: script
+  author: Hammad Arif
   input:
     notify_service:
       name: Notification Service

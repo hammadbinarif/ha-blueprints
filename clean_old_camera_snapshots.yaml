@@ -1,0 +1,19 @@
+blueprint:
+  name: Clean Old Camera Snapshots
+  description: >
+    Deletes camera snapshots older than the specified retention period (30 days by default,
+    configured in your shell_command.clean_camera_snapshots). This automation runs daily at 3 AM.
+  domain: automation
+  author: Hammad Arif
+
+trigger:
+  - platform: time_pattern
+    hours: "3" # Runs daily at 3 AM
+
+condition: []
+
+action:
+  - service: shell_command.clean_camera_snapshots
+    data: {}
+
+mode: single
